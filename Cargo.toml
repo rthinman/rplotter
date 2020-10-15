@@ -1,0 +1,17 @@
+[package]
+name = "rplotter"
+version = "0.1.0"
+authors = ["Rod Hinman <rod@auroraresearch.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#turtle = "1.0.0-rc.3"
+# Above is stable version, but using the most recent commit and unstable feature to get display working better.
+turtle = {git = "https://github.com/sunjay/turtle", features = ["unstable"] }
+serialport = "3.3.0"
+
+# Compile turtle and other dependencies with optimizations.
+[profile.dev.package."*"]
+opt-level = 3
