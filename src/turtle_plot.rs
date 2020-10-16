@@ -1,4 +1,5 @@
 use turtle::*;
+use crate::plottable::Plottable;
 
 const SCREENX_PX: i32 = 1200; // Size that fits OK on laptop main screen with menu on the left.
 const SCREENY_PX: i32 = 600;  // Could do 1280 x 640 with menu and icons on the bottom.
@@ -55,23 +56,26 @@ impl TurtlePlotter {
             max_y_mm: ury_mm,
             pos_x_mm: llx_mm,
             pos_y_mm: lly_mm,
-            scale:scale,
+            scale: scale,
             drawing: drawing,
             turtle: turtle
         }
     }
+}
 
-    pub fn initialize(&mut self) {
+impl Plottable for TurtlePlotter {
+
+    fn initialize(&mut self) {
         println!("Initializing...");
     }
 
-    pub fn finalize(&mut self) {
+    fn finalize(&mut self) {
         self.move_to(0.0, 0.0);
         println!("Finalizing.");
     }
 
         /// Draw a straight line from present position to absolute position (destx_mm, desty_mm), in units of mm.
-    pub fn draw(&mut self, destx_mm: f64, desty_mm: f64) {
+    fn draw(&mut self, destx_mm: f64, desty_mm: f64) {
         self.turtle.pen_down();
         self.turtle.go_to(Point {x: destx_mm/self.scale, y: desty_mm / self.scale});
         self.pos_x_mm = destx_mm; // Update position.
@@ -79,7 +83,7 @@ impl TurtlePlotter {
     }
 
     /// Move pen without drawing to absolute position (destx_mm, desty_mm), in units of mm.
-    pub fn move_to(&mut self, destx_mm: f64, desty_mm: f64) {
+    fn move_to(&mut self, destx_mm: f64, desty_mm: f64) {
         self.turtle.pen_up();
         self.turtle.go_to(Point {x: destx_mm/self.scale, y: desty_mm / self.scale});
         self.pos_x_mm = destx_mm; // Update position.
@@ -88,20 +92,20 @@ impl TurtlePlotter {
 
     /// Draw from present position (dx, dy) mm.
     /// Returns the new position of the pen.
-    pub fn draw_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
+    fn draw_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
         self.draw(self.pos_x_mm + dx_mm, self.pos_y_mm + dy_mm);
         (self.pos_x_mm, self.pos_y_mm)
     }
 
     /// Move the pen without drawing from present position (dx, dy) mm.
     /// Returns the new position of the pen.
-    pub fn move_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
+    fn move_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
         self.move_to(self.pos_x_mm + dx_mm, self.pos_y_mm + dy_mm);
         (self.pos_x_mm, self.pos_y_mm)
     }
 
     /// Raise the pen.
-    pub fn pen_up(&mut self) {
+    fn pen_up(&mut self) {
         self.turtle.pen_up();
     }
 

@@ -7,6 +7,7 @@ use serialport; // API documentation at https://docs.rs/serialport/3.3.0/serialp
 use serialport::DataBits::Eight;
 use serialport::FlowControl::Hardware;
 use serialport::StopBits::One; // Guide at https://turtle.rs, API documentation at https://docs.rs/turtle, and more examples at https://github.com/sunjay/turtle.
+use crate::plottable::Plottable;
 
 // Constants related to a USCutter LPII cutter/plotter.
 const SCALEX: f64 = 0.0251;   // mm per plotter unit. (When set at 0.025, a "150mm" line is 150.6mm long.)
@@ -46,7 +47,7 @@ impl USCutter {
         }
 
         // Get the serial port.
-        let settings = serialport::SerialPortSettings{
+        let settings = serialport::SerialPortSettings {
             baud_rate: 9600,
             data_bits: Eight,
             flow_control: Hardware,
@@ -70,100 +71,6 @@ impl USCutter {
 //            heading_radians: 0.0,
             port: port_obj,
         }
-    }
-
-    pub fn initialize(&mut self) {
-        // Prepare to plot
-        match self.port.write(b";:H A L0 ECN U ") {
-            Ok(_) => {
-                println!("Initializing");
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout when initializing plotter."),
-            Err(e) => eprintln!("{:?}", e)
-        }
-        // move the offset
-        match self.port.write(b"PU25,25;") {
-            Ok(_) => {
-                print!(".");
-                std::io::stdout().flush().unwrap();
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout when moving the initial offset."),
-            Err(e) => eprintln!("{:?}", e)
-        }
-    }
-
-    pub fn finalize(&mut self) {
-        // Finish plot
-        match self.port.write(b"PU0,0;!PG;") {
-            Ok(_) => {
-                println!("\nfinalizing.");
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout when finalizing plotter."),
-            Err(e) => eprintln!("{:?}", e)
-        }
-    }
-
-    /// Draw a straight line from present position to absolute position (destx_mm, desty_mm), in units of mm.
-    pub fn draw(&mut self, destx_mm: f64, desty_mm: f64) {
-        self.pos_x_mm = destx_mm;
-        self.pos_y_mm = desty_mm;
-        let x = self.clip_x(self.mm2plt_x(destx_mm) + self.offset_x); // Convert and clip
-        let y = self.clip_y(self.mm2plt_y(desty_mm) + self.offset_y); // Convert and clip
-
-        let s = format!("PD{},{};", x, y);
-        match self.port.write(s.as_bytes()) {
-            Ok(_) => {
-                print!(".");
-                std::io::stdout().flush().unwrap();
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout during operations."),
-            Err(e) => eprintln!("{:?}", e)
-        }
-    }
-
-    /// Move pen without drawing to absolute position (destx_mm, desty_mm), in units of mm.
-    pub fn move_to(&mut self, destx_mm: f64, desty_mm: f64) {
-        self.pos_x_mm = destx_mm;
-        self.pos_y_mm = desty_mm;
-        let x = self.clip_x(self.mm2plt_x(destx_mm) + self.offset_x); // Convert and clip
-        let y = self.clip_y(self.mm2plt_y(desty_mm) + self.offset_y); // Convert and clip
-
-        let s = format!("PU{},{};", x, y);
-        match self.port.write(s.as_bytes()) {
-            Ok(_) => {
-                print!(".");
-                std::io::stdout().flush().unwrap();
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout during operations."),
-            Err(e) => eprintln!("{:?}", e)
-        }
-    }
-
-    /// Draw from present position (dx, dy) mm.
-    /// Returns the new position of the pen.
-    pub fn draw_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
-        self.draw(self.pos_x_mm + dx_mm, self.pos_y_mm + dy_mm);
-        (self.pos_x_mm, self.pos_y_mm)
-    }
-
-    /// Move the pen without drawing from present position (dx, dy) mm.
-    /// Returns the new position of the pen.
-    pub fn move_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
-        self.move_to(self.pos_x_mm + dx_mm, self.pos_y_mm + dy_mm);
-        (self.pos_x_mm, self.pos_y_mm)
-    }
-
-    /// Raise the pen.
-    pub fn pen_up(&mut self) {
-        match self.port.write(b"PU;") {
-            Ok(_) => {
-                print!(".");
-                std::io::stdout().flush().unwrap();
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout during operations."),
-            Err(e) => eprintln!("{:?}", e)
-        }
-
     }
 
     // Helper methods.
@@ -203,5 +110,102 @@ impl USCutter {
         } else {
             y
         }
+    }
+}
+
+impl Plottable for USCutter {
+
+    fn initialize(&mut self) {
+        // Prepare to plot
+        match self.port.write(b";:H A L0 ECN U ") {
+            Ok(_) => {
+                println!("Initializing");
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout when initializing plotter."),
+            Err(e) => eprintln!("{:?}", e)
+        }
+        // move the offset
+        match self.port.write(b"PU25,25;") {
+            Ok(_) => {
+                print!(".");
+                std::io::stdout().flush().unwrap();
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout when moving the initial offset."),
+            Err(e) => eprintln!("{:?}", e)
+        }
+    }
+
+    fn finalize(&mut self) {
+        // Finish plot
+        match self.port.write(b"PU0,0;!PG;") {
+            Ok(_) => {
+                println!("\nfinalizing.");
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout when finalizing plotter."),
+            Err(e) => eprintln!("{:?}", e)
+        }
+    }
+
+    /// Draw a straight line from present position to absolute position (destx_mm, desty_mm), in units of mm.
+    fn draw(&mut self, destx_mm: f64, desty_mm: f64) {
+        self.pos_x_mm = destx_mm;
+        self.pos_y_mm = desty_mm;
+        let x = self.clip_x(self.mm2plt_x(destx_mm) + self.offset_x); // Convert and clip
+        let y = self.clip_y(self.mm2plt_y(desty_mm) + self.offset_y); // Convert and clip
+
+        let s = format!("PD{},{};", x, y);
+        match self.port.write(s.as_bytes()) {
+            Ok(_) => {
+//                print!(".");
+//                std::io::stdout().flush().unwrap();
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout during operations."),
+            Err(e) => eprintln!("{:?}", e)
+        }
+    }
+
+    /// Move pen without drawing to absolute position (destx_mm, desty_mm), in units of mm.
+    fn move_to(&mut self, destx_mm: f64, desty_mm: f64) {
+        self.pos_x_mm = destx_mm;
+        self.pos_y_mm = desty_mm;
+        let x = self.clip_x(self.mm2plt_x(destx_mm) + self.offset_x); // Convert and clip
+        let y = self.clip_y(self.mm2plt_y(desty_mm) + self.offset_y); // Convert and clip
+
+        let s = format!("PU{},{};", x, y);
+        match self.port.write(s.as_bytes()) {
+            Ok(_) => {
+//                print!(".");
+//                std::io::stdout().flush().unwrap();
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout during operations."),
+            Err(e) => eprintln!("{:?}", e)
+        }
+    }
+
+    /// Draw from present position (dx, dy) mm.
+    /// Returns the new position of the pen.
+    fn draw_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
+        self.draw(self.pos_x_mm + dx_mm, self.pos_y_mm + dy_mm);
+        (self.pos_x_mm, self.pos_y_mm)
+    }
+
+    /// Move the pen without drawing from present position (dx, dy) mm.
+    /// Returns the new position of the pen.
+    fn move_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64) {
+        self.move_to(self.pos_x_mm + dx_mm, self.pos_y_mm + dy_mm);
+        (self.pos_x_mm, self.pos_y_mm)
+    }
+
+    /// Raise the pen.
+    fn pen_up(&mut self) {
+        match self.port.write(b"PU;") {
+            Ok(_) => {
+                print!(".");
+                std::io::stdout().flush().unwrap();
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => eprintln!("Timeout during operations."),
+            Err(e) => eprintln!("{:?}", e)
+        }
+
     }
 }
