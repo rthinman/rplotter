@@ -153,7 +153,7 @@ impl USCutter {
         (self.pos_x_mm, self.pos_y_mm)
     }
 
-    // Raise the pen.
+    /// Raise the pen.
     pub fn pen_up(&mut self) {
         match self.port.write(b"PU;") {
             Ok(_) => {

@@ -1,15 +1,21 @@
-mod uscutter;  // Load the module uscutter from file uscutter.rs.
+mod turtle_plot; // Load the modules from files of the same name.
+mod uscutter;
 
 //use std::f64::consts::PI;
 use std::error::Error;
 use uscutter::USCutter;
+use crate::turtle_plot::TurtlePlotter;
 
 
 fn main()  -> Result<(), Box<dyn Error>> {
+    // Cutter/plotter.
 //    let port_name = "COM4";  // FTDI cable through the docking station.
-    let port_name = "COM12"; // Plotter through the docking station.
+//    let port_name = "COM12"; // Plotter through the docking station.
+//    let mut plotter = USCutter::new(port_name, 0.0, 0.0, 25.0, 25.0);
 
-    let mut plotter = USCutter::new(port_name, 0.0, 0.0, 25.0, 25.0);
+    // Turtle graphics plotting
+    let mut plotter = TurtlePlotter::new(-10.0, -10.0, 35.0, 35.0);
+
     plotter.initialize();
     plotter.draw(10.0, 0.0);
     plotter.move_relative(5.0, 0.0);
