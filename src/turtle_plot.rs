@@ -46,6 +46,7 @@ impl TurtlePlotter {
         let mut turtle = drawing.add_turtle();  // Get the turtle struct from the drawing.
         println!("drawing size: {:?}", drawing.size());
         turtle.use_radians();
+        turtle.set_speed("faster");
 
         TurtlePlotter {
             min_x_mm: llx_mm,
@@ -65,6 +66,7 @@ impl TurtlePlotter {
     }
 
     pub fn finalize(&mut self) {
+        self.move_to(0.0, 0.0);
         println!("Finalizing.");
     }
 
