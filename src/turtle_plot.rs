@@ -1,3 +1,12 @@
+//! turtle_plot module contains the TurtlePlotter struct, used as a wrapper for turtle graphics
+//! to make it compatible with the cutter/plotter driver module uscutter.
+//!
+
+// Some helpful web sites:
+// https://docs.rs/turtle/1.0.0-rc.3/turtle/index.html
+// https://github.com/sunjay/turtle
+// https://turtle.rs/
+
 use turtle::*;
 use crate::plottable::Plottable;
 
@@ -65,16 +74,18 @@ impl TurtlePlotter {
 
 impl Plottable for TurtlePlotter {
 
+    /// Provided for compatibility with the cutter/plotter.
     fn initialize(&mut self) {
         println!("Initializing...");
     }
 
+    /// Provided for compatibility with the cutter/plotter.
     fn finalize(&mut self) {
         self.move_to(0.0, 0.0);
         println!("Finalizing.");
     }
 
-        /// Draw a straight line from present position to absolute position (destx_mm, desty_mm), in units of mm.
+    /// Draw a straight line from present position to absolute position (destx_mm, desty_mm), in units of mm.
     fn draw(&mut self, destx_mm: f64, desty_mm: f64) {
         self.turtle.pen_down();
         self.turtle.go_to(Point {x: destx_mm/self.scale, y: desty_mm / self.scale});
@@ -109,4 +120,13 @@ impl Plottable for TurtlePlotter {
         self.turtle.pen_up();
     }
 
+    /// Sets the color of the pen.  Wraps the turtle command primarily so we can do something
+    /// manual with the USCutter struct.
+    /// See this documentation for pre-defined color string names.
+    /// https://docs.rs/turtle/1.0.0-rc.3/turtle/color/index.html
+    /// Those that match HP and other manufacturer pen colors are:
+    /// black, blue, brown, cyan (HP aqua), green, magenta, orange, purple (HP violet), red, yellow
+    fn change_color(&mut self, color_name: &str) {
+        self.turtle.set_pen_color(color_name);
+    }
 }

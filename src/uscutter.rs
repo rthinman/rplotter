@@ -1,4 +1,6 @@
-// This file contains the module uscutter due to its filename.
+//! uscutter module contains the USCutter struct, a driver for a USCutter LPII cutter/plotter.
+//! This also makes it compatible with the turtle graphics adapter module turtle_plot.
+//!
 
 use std::io::{self, Write};
 use std::time::Duration;
@@ -6,7 +8,7 @@ use std::time::Duration;
 use serialport; // API documentation at https://docs.rs/serialport/3.3.0/serialport/, examples at https://gitlab.com/susurrus/serialport-rs
 use serialport::DataBits::Eight;
 use serialport::FlowControl::Hardware;
-use serialport::StopBits::One; // Guide at https://turtle.rs, API documentation at https://docs.rs/turtle, and more examples at https://github.com/sunjay/turtle.
+use serialport::StopBits::One;
 use crate::plottable::Plottable;
 
 // Constants related to a USCutter LPII cutter/plotter.
@@ -37,6 +39,17 @@ impl USCutter {
     /// `port_name`: The text name for the COM port, e.g. COM12.
     /// `llx_mm, lly_mm`: The coordinates for the lower left corner of the plot, in mm.
     /// `urx_mm, ury_mm`: The coordinates for the upper right corner of the plot.
+    ///
+    /// By default, the pen will start in the lower left corner.  You may want to move it
+    /// somewhere else before starting to draw.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut plotter = USCutter::new("COM12", 0.0, 0.0, 50.0, 50.0);
+    /// plotter.draw(20.0, 6.7);
+    /// ```
+    ///
     pub fn new(port_name: &str, llx_mm: f64, lly_mm: f64, urx_mm: f64, ury_mm: f64) -> USCutter {
         // Check that the upper right is greater than the lower left.
         let size_x_mm = urx_mm - llx_mm;
@@ -73,24 +86,28 @@ impl USCutter {
         }
     }
 
-    // Helper methods.
+    // Helper methods to manipulate dimensions.
 
     /// Convert x dimension in mm to plotter units.
     fn mm2plt_x(&self, xmm:f64) -> i32 {
         ((xmm - self.min_x_mm) / SCALEX) as i32
     }
+
     /// Convert y dimension in mm to plotter units.
     fn mm2plt_y(&self, ymm:f64) -> i32 {
         ((ymm - self.min_y_mm) / SCALEY) as i32
     }
+
     /// Convert x dimension in plotter units to mm.
     fn plt2mm_x(&self, xplt: i32) -> f64 {
         xplt as f64 * SCALEX + self.min_x_mm
     }
+
     /// Convert y dimension in plotter units to mm.
     fn plt2mm_y(&self, yplt: i32) -> f64 {
         yplt as f64 * SCALEY + self.min_y_mm
     }
+
     /// Clip x dimension in plotter units to [0, max].
     fn clip_x(&self, x: i32) -> i32 {
         if x < 0 {
@@ -101,6 +118,7 @@ impl USCutter {
             x
         }
     }
+
     /// Clip y dimension in plotter units to [0, max].
     fn clip_y(&self, y: i32) -> i32 {
         if y < 0 {
@@ -115,6 +133,9 @@ impl USCutter {
 
 impl Plottable for USCutter {
 
+    /// initialize() must be called before plotting anything, as it sends a "magic" non-HPGL
+    /// command to the plotter to get its attention.
+    /// When you are finished plotting, don't forget to call finalize().
     fn initialize(&mut self) {
         // Prepare to plot
         match self.port.write(b";:H A L0 ECN U ") {
@@ -135,6 +156,8 @@ impl Plottable for USCutter {
         }
     }
 
+    /// Call this method to finish plotting.  It moves the pen back to the lower left corner
+    /// and more importantly, turns off the various driver circuits.
     fn finalize(&mut self) {
         // Finish plot
         match self.port.write(b"PU0,0;!PG;") {
@@ -147,6 +170,18 @@ impl Plottable for USCutter {
     }
 
     /// Draw a straight line from present position to absolute position (destx_mm, desty_mm), in units of mm.
+    /// Pen movement will be clipped to within the rectangle specified when the plotter is created.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut plotter = USCutter::new("COM12", 0.0, 0.0, 10.0, 10.0);
+    /// plotter.draw(10.0, 20.0);
+    /// ```
+    ///
+    /// Draws a line from (0.0, 0.0) with slope 2, but at (5.0, 10.0) hits the upper bound of the drawing rectangle.
+    /// After that the pen will only move horizontally to (10.0, 10.0).
+    ///
     fn draw(&mut self, destx_mm: f64, desty_mm: f64) {
         self.pos_x_mm = destx_mm;
         self.pos_y_mm = desty_mm;
@@ -165,6 +200,8 @@ impl Plottable for USCutter {
     }
 
     /// Move pen without drawing to absolute position (destx_mm, desty_mm), in units of mm.
+    /// Pen movement will be clipped to within the rectangle specified when the plotter is created.
+    /// See example for draw().
     fn move_to(&mut self, destx_mm: f64, desty_mm: f64) {
         self.pos_x_mm = destx_mm;
         self.pos_y_mm = desty_mm;
@@ -196,7 +233,8 @@ impl Plottable for USCutter {
         (self.pos_x_mm, self.pos_y_mm)
     }
 
-    /// Raise the pen.
+    /// Raise the pen.  You might want to do this when pausing motion to prevent
+    /// the pen bleeding into the paper.
     fn pen_up(&mut self) {
         match self.port.write(b"PU;") {
             Ok(_) => {
@@ -207,5 +245,20 @@ impl Plottable for USCutter {
             Err(e) => eprintln!("{:?}", e)
         }
 
+    }
+
+    /// Sets the color of the pen.  Prompts the user to manually change the pen.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// plotter.change_color("red");
+    /// ```
+    ///
+    fn change_color(&mut self, color_name: &str) {
+        self.pen_up();
+        println!("Change pens to {} and then hit enter", color_name);
+        let mut input_line = String::new();
+        io::stdin().read_line(&mut input_line).expect("Error reading line.");
     }
 }

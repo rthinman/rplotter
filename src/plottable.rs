@@ -6,4 +6,5 @@ pub trait Plottable {
     fn draw_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64);
     fn move_relative(&mut self, dx_mm: f64, dy_mm: f64) -> (f64, f64);
     fn pen_up(&mut self);
+    fn change_color(&mut self, color_name: &str);
 }
