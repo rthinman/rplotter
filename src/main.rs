@@ -7,6 +7,7 @@
 //!
 
 mod plottable;
+mod roulette;
 mod turtle_plot; // Load the modules from files of the same name.
 mod uscutter;
 
@@ -15,48 +16,20 @@ use std::error::Error;
 use plottable::Plottable;
 use uscutter::USCutter;
 use crate::turtle_plot::TurtlePlotter;
-
-struct Spirograph {
-    inner: u32,
-    outer: u32,
-    radius: f64,
-    pen: f64,
-}
-
-impl Spirograph {
-    /// Returns the total radius of the pattern, so we can set paper/window size.
-    fn get_plot_radius(&self) -> f64 {
-        let ratio: f64 = self.inner as f64 / self.outer as f64;
-        self.radius * (1.0 - ratio + self.pen * ratio)
-    }
-
-    /// Generates the plot.
-    fn plot(&self, plotter: &mut impl Plottable) {
-        let ratio: f64 = self.inner as f64 / self.outer as f64;
-        let mut x = self.get_plot_radius();
-        let mut y = 0.0;
-        plotter.move_to(x, y);
-        for i in 0 .. (self.inner * 40) {
-            let t = 2.0 * PI * i as f64 / 40.0;
-            x = self.radius * ((1.0 - ratio) * t.cos() + self.pen * ratio * ((1.0 - ratio) / ratio * t).cos() );
-            y = self.radius * ((1.0 - ratio) * t.sin() - self.pen * ratio * ((1.0 - ratio) / ratio * t).sin() );
-            plotter.draw(x, y);
-        }
-    }
-}
+use roulette::full_hypotrochoid;
 
 fn main()  -> Result<(), Box<dyn Error>> {
     // Choose whether to display on screen or send to plotter.
     // TODO: add code to read the command line to get this value.
-    let send_to_plotter = false;
+    let send_to_plotter = true;
 
     // Plot bounds, lower left corner
     // Change these when setting up a plot.
-    let plot_minx_mm = -50.0;
-    let plot_miny_mm = -50.0;
+    let plot_minx_mm = -40.0;
+    let plot_miny_mm = -40.0;
     // Upper right corner
-    let plot_maxx_mm = 50.0;
-    let plot_maxy_mm = 50.0;
+    let plot_maxx_mm = 40.0;
+    let plot_maxy_mm = 40.0;
 
     // Below here in this function should not have to change as plots are changed.
 
@@ -90,11 +63,50 @@ fn main()  -> Result<(), Box<dyn Error>> {
 /// Call the plotter's move_to() and draw() methods, or write other functions that do.
 fn generate_plot(plotter: &mut impl Plottable) {
     // Put plot-generating commands here.
-    let spiro = Spirograph {
-        inner: 17,
-        outer: 20,
-        radius: 50.0,
-        pen: 0.7,
-    };
-    spiro.plot(plotter);
+    let colors = ["black", "blue", "green", "yellow"];
+
+//    plotter.change_color("cyan");
+//    for row in -2..3 {
+//        let row_abs = if row < 0 { -row } else { row };
+//        for col in 0 .. (5 - row_abs) {
+//            let y = row as f64 * 12.0 * (3.0f64).sqrt();
+//            let x = (-(4.0 - row_abs as f64) / 2.0 + col as f64) * 24.0;
+//        roulette::full_hypotrochoid(plotter, 5.7, 3.8, 7, 12,
+//                                    x, y, 0.0);
+//        }
+//    }
+//
+//    plotter.change_color("green");
+//    for row in -2..3 {
+//        let row_abs = if row < 0 { -row } else { row };
+//        for col in 0 .. (5 - row_abs) {
+//            let y = row as f64 * 12.0 * (3.0f64).sqrt();
+//            let x = (-(4.0 - row_abs as f64) / 2.0 + col as f64) * 24.0;
+//        roulette::full_hypotrochoid(plotter, 10.0, 5.5, 5, 6,
+//                                    x, y, 0.0);
+//        }
+//    }
+//
+//    plotter.change_color("black");
+//    for row in -2..3 {
+//        let row_abs = if row < 0 { -row } else { row };
+//        for col in 0 .. (5 - row_abs) {
+//            let y = row as f64 * 12.0 * (3.0f64).sqrt();
+//            let x = (-(4.0 - row_abs as f64) / 2.0 + col as f64) * 24.0;
+//        roulette::full_hypotrochoid(plotter, 10.0, 10.0, 5, 6,
+//                                    x, y, 0.0);
+//        }
+//    }
+
+    plotter.change_color("cyan");
+    roulette::full_hypotrochoid(plotter, 17.1, 11.4
+                                , 7, 12,
+                                0.0, 0.0, 0.0);
+    plotter.change_color("green");
+    roulette::full_hypotrochoid(plotter, 30.0, 16.5, 5, 6,
+                                0.0, 0.0, 0.0);
+    plotter.change_color("black");
+    roulette::full_hypotrochoid(plotter, 30.0, 30.0, 5, 6,
+                                0.0, 0.0, 0.0);
+
 }

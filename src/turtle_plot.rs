@@ -56,7 +56,8 @@ impl TurtlePlotter {
         let mut turtle = drawing.add_turtle();  // Get the turtle struct from the drawing.
         println!("drawing size: {:?}", drawing.size());
         turtle.use_radians();
-        turtle.set_speed("faster");
+//        turtle.set_speed("faster");
+        turtle.set_speed("instant");
 
         TurtlePlotter {
             min_x_mm: llx_mm,
